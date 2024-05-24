@@ -28,6 +28,10 @@ public class ProceduralTerrainGenerator : MonoBehaviour
     public float mountainFrequency = 0.5f;
     public Texture2D mountainTexture;
 
+    [Header("Blend Settings")]
+    [Range(-1.0f, 1.0f)]
+    public float blendFactor = 0.0f; // Range from -1 (100% ground) to 1 (100% mountain)
+
     [HideInInspector]
     public Texture2D groundNoiseTexture;
     [HideInInspector]
@@ -76,7 +80,7 @@ public class ProceduralTerrainGenerator : MonoBehaviour
     {
         float[,] heights = new float[terrainWidth, terrainHeight];
 
-        // Water layer (flat)
+        // Generate water layer heights (flat)
         for (int x = 0; x < terrainWidth; x++)
         {
             for (int y = 0; y < terrainHeight; y++)
@@ -85,11 +89,11 @@ public class ProceduralTerrainGenerator : MonoBehaviour
             }
         }
 
-        // Ground layer
+        // Generate ground layer heights
         ApplyPerlinNoiseLayer(ref heights, groundScale, groundHeight, groundOffsetX, groundOffsetY, groundFrequency);
 
-        // Mountain layer
-        ApplyPerlinNoiseLayer(ref heights, mountainScale, mountainHeight, mountainOffsetX, mountainOffsetY, mountainFrequency);
+        // Generate mountain layer heights with blending
+        ApplyPerlinNoiseLayerWithBlend(ref heights, mountainScale, mountainHeight, mountainOffsetX, mountainOffsetY, mountainFrequency, blendFactor);
 
         return heights;
     }
@@ -104,6 +108,25 @@ public class ProceduralTerrainGenerator : MonoBehaviour
                 float yCoord = (float)y / terrainHeight * scale + offsetY;
                 float sample = Mathf.PerlinNoise(xCoord * frequency, yCoord * frequency) * height / terrainDepth;
                 heights[x, y] += sample;
+            }
+        }
+    }
+
+    private void ApplyPerlinNoiseLayerWithBlend(ref float[,] heights, float scale, float height, float offsetX, float offsetY, float frequency, float blendFactor)
+    {
+        for (int x = 0; x < terrainWidth; x++)
+        {
+            for (int y = 0; y < terrainHeight; y++)
+            {
+                float xCoord = (float)x / terrainWidth * scale + offsetX;
+                float yCoord = (float)y / terrainHeight * scale + offsetY;
+                float sample = Mathf.PerlinNoise(xCoord * frequency, yCoord * frequency) * height / terrainDepth;
+
+                // Calculate blend factor based on blendFactor parameter
+                float blend = Mathf.Clamp01((blendFactor + 1.0f) / 2.0f); // Normalize blendFactor to [0, 1]
+
+                // Apply blended height
+                heights[x, y] = Mathf.Lerp(heights[x, y], heights[x, y] + sample, blend);
             }
         }
     }
@@ -132,15 +155,15 @@ public class ProceduralTerrainGenerator : MonoBehaviour
         // Create TerrainLayers
         TerrainLayer waterLayer = new TerrainLayer();
         waterLayer.diffuseTexture = waterTexture;
-        waterLayer.tileSize = new Vector2(terrainWidth, terrainHeight);
+        waterLayer.tileSize = new Vector2(terrainWidth / 10f, terrainHeight / 10f); // Adjust tile size
 
         TerrainLayer groundLayer = new TerrainLayer();
         groundLayer.diffuseTexture = groundTexture;
-        groundLayer.tileSize = new Vector2(terrainWidth, terrainHeight);
+        groundLayer.tileSize = new Vector2(terrainWidth / 10f, terrainHeight / 10f); // Adjust tile size
 
         TerrainLayer mountainLayer = new TerrainLayer();
         mountainLayer.diffuseTexture = mountainTexture;
-        mountainLayer.tileSize = new Vector2(terrainWidth, terrainHeight);
+        mountainLayer.tileSize = new Vector2(terrainWidth / 10f, terrainHeight / 10f); // Adjust tile size
 
         terrainData.terrainLayers = new TerrainLayer[] { waterLayer, groundLayer, mountainLayer };
 
@@ -156,19 +179,21 @@ public class ProceduralTerrainGenerator : MonoBehaviour
                 // Normalize height to a range of 0 to 1
                 float normHeight = height / terrainDepth;
 
-                // Determine the layer based on height
-                if (normHeight <= waterHeight / terrainDepth)
-                {
-                    splatmapData[x, y, 0] = 1; // Water
-                }
-                else if (normHeight <= (waterHeight + groundHeight) / terrainDepth)
-                {
-                    splatmapData[x, y, 1] = 1; // Ground
-                }
-                else
-                {
-                    splatmapData[x, y, 2] = 1; // Mountains
-                }
+                // Determine blend factors for ground and mountain layers
+                float waterBlend = Mathf.Clamp01((waterHeight - height) / waterHeight);
+                float groundBlend = Mathf.Clamp01((height - waterHeight) / (groundHeight + waterHeight));
+                float mountainBlend = Mathf.Clamp01((height - (waterHeight + groundHeight)) / mountainHeight);
+
+                // Normalize the blends to ensure they sum to 1
+                float sum = waterBlend + groundBlend + mountainBlend;
+                waterBlend /= sum;
+                groundBlend /= sum;
+                mountainBlend /= sum;
+
+                // Set the splatmap data
+                splatmapData[x, y, 0] = waterBlend; // Water
+                splatmapData[x, y, 1] = groundBlend; // Ground
+                splatmapData[x, y, 2] = mountainBlend; // Mountains
             }
         }
 
