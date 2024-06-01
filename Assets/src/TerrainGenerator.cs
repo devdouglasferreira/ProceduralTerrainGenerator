@@ -106,30 +106,47 @@ public class TerrainGenerator : MonoBehaviour
         {
             for (int y = 0; y < terrainHeight; y++)
             {
-
                 var waterHeight = waterNoiseMap[x, y] * waterMapWeight;
                 var groundHeight = groundNoiseMap[x, y] * groundMapWeight;
                 var mountainHeight = mountainNoiseMap[x, y] * mountainMapWeight;
-                //Debug.Log($"XY: {x}-{y} Water: {waterHeight}, Ground: {groundHeight}, Mountain: {mountainHeight}");
-                float height = 0;
-                if (mountainHeight > groundHeight)
+
+                float blendedHeight = 0;
+                float waterBlend = Mathf.SmoothStep(0, 1, waterHeight);
+                float groundBlend = Mathf.SmoothStep(0, 1, groundHeight);
+                float mountainBlend = Mathf.SmoothStep(0, 1, mountainHeight);
+
+                // Normalize the blend values so they sum up to 1
+                float totalBlend = groundBlend + mountainBlend;
+                groundBlend /= totalBlend;
+                mountainBlend /= totalBlend;
+
+                // Blend ground and mountain heights based on their respective blends
+                blendedHeight += groundBlend * Map(groundHeight, 0, 1, groundMinHeight, groundMaxHeight);
+                blendedHeight += mountainBlend * Map(mountainHeight, 0, 1, mountainMinHeight, mountainMaxHeight);
+
+                // Apply the flat water layer height if water is the dominant layer
+                if (waterBlend > groundBlend && waterBlend > mountainBlend)
                 {
-                    resultantHeightMapColor[x, y] = 2;
-                    height += Map(mountainHeight, 0, 1, mountainMinHeight, mountainMaxHeight);
-                }
-                else if (groundHeight > waterHeight)
-                {
-                    resultantHeightMapColor[x, y] = 1;
-                    height += Map(groundHeight, 0, 1, groundMinHeight, groundMaxHeight);
+                    resultantHeightMap[x, y] = Map(waterHeight, 0, 1, 0, groundMinHeight) / terrainDepth;
+                    resultantHeightMapColor[x, y] = 0;
                 }
                 else
                 {
-                    resultantHeightMapColor[x, y] = 0;
-                }
+                    resultantHeightMap[x, y] = blendedHeight / terrainDepth;
 
-                resultantHeightMap[x, y] += height / terrainDepth;
+                    // Determine the dominant layer for coloring
+                    if (mountainBlend > groundBlend)
+                    {
+                        resultantHeightMapColor[x, y] = 2;
+                    }
+                    else
+                    {
+                        resultantHeightMapColor[x, y] = 1;
+                    }
+                }
             }
         }
+
         return (resultantHeightMap, resultantHeightMapColor);
     }
 
