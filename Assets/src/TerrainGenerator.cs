@@ -26,6 +26,8 @@ public class TerrainGenerator : MonoBehaviour
     //public float minGroundHeight = 3f;
     [Range(0, 1)]
     public float groundMapWeight = 0.5f;
+    public float groundMinHeight = 3.0f;
+    public float groundMaxHeight = 15.0f;
     public float groundScale = 10.0f;
     public float groundOffsetX = 0.0f;
     public float groundOffsetY = 0.0f;
@@ -36,6 +38,8 @@ public class TerrainGenerator : MonoBehaviour
     //public float minMoutainHeight = 3f;
     [Range(0, 1)]
     public float mountainMapWeight = 0.5f;
+    public float mountainMinHeight = 15.0f;
+    public float mountainMaxHeight = 250;
     public float mountainScale = 10.0f;
     public float moutainOffsetX = 0.0f;
     public float moutainOffsetY = 0.0f;
@@ -106,27 +110,24 @@ public class TerrainGenerator : MonoBehaviour
                 var waterHeight = waterNoiseMap[x, y] * waterMapWeight;
                 var groundHeight = groundNoiseMap[x, y] * groundMapWeight;
                 var mountainHeight = mountainNoiseMap[x, y] * mountainMapWeight;
+                //Debug.Log($"XY: {x}-{y} Water: {waterHeight}, Ground: {groundHeight}, Mountain: {mountainHeight}");
                 float height = 0;
-
                 if (mountainHeight > groundHeight)
                 {
                     resultantHeightMapColor[x, y] = 2;
-                    height = groundHeight + mountainHeight;
+                    height += Map(mountainHeight, 0, 1, mountainMinHeight, mountainMaxHeight);
                 }
-
                 else if (groundHeight > waterHeight)
                 {
                     resultantHeightMapColor[x, y] = 1;
-                    height = groundHeight + waterHeight;
+                    height += Map(groundHeight, 0, 1, groundMinHeight, groundMaxHeight);
                 }
-
                 else
                 {
                     resultantHeightMapColor[x, y] = 0;
-                    height = waterHeight;
                 }
 
-                resultantHeightMap[x, y] = height;
+                resultantHeightMap[x, y] += height / terrainDepth;
             }
         }
         return (resultantHeightMap, resultantHeightMapColor);
@@ -144,52 +145,57 @@ public class TerrainGenerator : MonoBehaviour
             for (int y = 0; y < terrainHeight; y++)
             {
                 if (resultantHeightMapColor[x, y] == 0)
-                    heights[x, y] = 0;
+                    heights[x, y] = resultantHeightMap[x, y];
                 else
-                    heights[x, y] = resultantHeightMap[x, y] * terrainDepth;
+                    heights[x, y] = resultantHeightMap[x, y];
             }
         }
         terrainData.SetHeights(0, 0, heights);
     }
 
 
-private void ApplyTerrainTextures()
-{
-    TerrainLayer waterLayer = new TerrainLayer
+    private void ApplyTerrainTextures()
     {
-        diffuseTexture = waterTexture,
-        tileSize = new Vector2(terrainWidth / 10f, terrainHeight / 10f)
-    };
-
-    TerrainLayer groundLayer = new TerrainLayer
-    {
-        diffuseTexture = groundTexture,
-        tileSize = new Vector2(terrainWidth / 10f, terrainHeight / 10f)
-    };
-
-    TerrainLayer mountainLayer = new TerrainLayer
-    {
-        diffuseTexture = mountainTexture,
-        tileSize = new Vector2(terrainWidth / 10f, terrainHeight / 10f)
-    };
-
-    terrainData.terrainLayers = new TerrainLayer[] { waterLayer, groundLayer, mountainLayer };
-
-    float[,,] splatmapData = new float[terrainData.alphamapWidth, terrainData.alphamapHeight, 3];
-
-    for (int y = 0; y < terrainData.alphamapHeight; y++)
-    {
-        for (int x = 0; x < terrainData.alphamapWidth; x++)
+        TerrainLayer waterLayer = new TerrainLayer
         {
-            if (x < terrainWidth && y < terrainHeight)
+            diffuseTexture = waterTexture,
+            tileSize = new Vector2(terrainWidth / 10f, terrainHeight / 10f)
+        };
+
+        TerrainLayer groundLayer = new TerrainLayer
+        {
+            diffuseTexture = groundTexture,
+            tileSize = new Vector2(terrainWidth / 10f, terrainHeight / 10f)
+        };
+
+        TerrainLayer mountainLayer = new TerrainLayer
+        {
+            diffuseTexture = mountainTexture,
+            tileSize = new Vector2(terrainWidth / 10f, terrainHeight / 10f)
+        };
+
+        terrainData.terrainLayers = new TerrainLayer[] { waterLayer, groundLayer, mountainLayer };
+
+        float[,,] splatmapData = new float[terrainData.alphamapWidth, terrainData.alphamapHeight, 3];
+
+        for (int y = 0; y < terrainData.alphamapHeight; y++)
+        {
+            for (int x = 0; x < terrainData.alphamapWidth; x++)
             {
-                int colorIndex = resultantHeightMapColor[x, y];
-                splatmapData[x, y, colorIndex] = 1;
+                if (x < terrainWidth && y < terrainHeight)
+                {
+                    int colorIndex = resultantHeightMapColor[x, y];
+                    splatmapData[x, y, colorIndex] = 1;
+                }
             }
         }
+
+        terrainData.SetAlphamaps(0, 0, splatmapData);
     }
 
-    terrainData.SetAlphamaps(0, 0, splatmapData);
-}
+    private float Map(float value, float fromSource, float toSource, float fromTarget, float toTarget)
+    {
+        return (value - fromSource) / (toSource - fromSource) * (toTarget - fromTarget) + fromTarget;
+    }
 
 }
