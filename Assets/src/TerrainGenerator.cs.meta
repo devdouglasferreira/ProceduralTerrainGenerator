@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 22c8b543a91d047acbee77bec31c35a1
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - waterTexture: {fileID: 2800000, guid: 87ef601c86d290440aaf44dffff50df6, type: 3}
+  - groundTexture: {fileID: 2800000, guid: 22087d88c8e99684fa5ec10c556e82ca, type: 3}
+  - mountainTexture: {fileID: 2800000, guid: 156277c5fb354e04aa53483e1238f40f, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

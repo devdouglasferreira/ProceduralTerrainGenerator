@@ -1,51 +1,73 @@
 using UnityEditor;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
-[CustomEditor(typeof(ProceduralTerrainGenerator))]
+[CustomEditor(typeof(TerrainGenerator))]
 public class ProceduralTerrainGeneratorEditor : Editor
 {
-    ProceduralTerrainGenerator generator;
+    TerrainGenerator generator;
 
     protected void OnEnable()
     {
-        generator = target as ProceduralTerrainGenerator;
+        generator = target as TerrainGenerator;
     }
 
     public override void OnInspectorGUI()
     {
         DrawDefaultInspector();
 
-        //if (GUILayout.Button("Generate Terrain"))
-        //{
-        //    generator.GenerateTerrain();
-        //}
+        GUILayout.Label("Resultant Height Map:");
+        GUILayout.Label(GenerateResultantTexture(generator.resultantHeightMap));
+
+        GUILayout.Label("Water Noise Map:");
+        GUILayout.Label(GenerateNoiseTexture(generator.waterNoiseMap));
 
         GUILayout.Label("Ground Noise Map:");
-        DrawNoiseMap(generator.terrainWidth, generator.terrainHeight, generator.groundScale, new Vector2(generator.groundOffsetX, generator.groundOffsetX));
+        GUILayout.Label(GenerateNoiseTexture(generator.groundNoiseMap));
 
-        GUILayout.Label("Mountain Noise Map:");
-        DrawNoiseMap(generator.terrainWidth, generator.terrainHeight, generator.mountainScale, new Vector2(generator.mountainOffsetX, generator.mountainOffsetY));
+        GUILayout.Label("Moutain Noise Map:");
+        GUILayout.Label(GenerateNoiseTexture(generator.mountainNoiseMap));
+
+
     }
 
-    private void DrawNoiseMap(int width, int length, float scale, Vector2 offset)
+    public Texture2D GenerateNoiseTexture(float[,] noiseMap)
     {
-        Texture2D noiseTex = new Texture2D(width, length);
-        Color[] pixels = new Color[width * length];
+        Texture2D texture = new Texture2D(generator.terrainWidth, generator.terrainHeight);
 
-        for (int y = 0; y < length; y++)
+        for (int x = 0; x < generator.terrainWidth; x++)
         {
-            for (int x = 0; x < width; x++)
+            for (int y = 0; y < generator.terrainHeight; y++)
             {
-                float xCoord = (float)x / width * scale + offset.x;
-                float yCoord = (float)y / length * scale + offset.y;
-                float sample = Mathf.PerlinNoise(xCoord, yCoord);
-                pixels[y * width + x] = new Color(sample, sample, sample);
+                float sample = noiseMap[x, y];
+                texture.SetPixel(x, y, Color.Lerp(Color.black, Color.white, sample));
             }
         }
 
-        noiseTex.SetPixels(pixels);
-        noiseTex.Apply();
+        texture.Apply();
+        return texture;
+    }
 
-        GUILayout.Label(noiseTex);
+    public Texture2D GenerateResultantTexture(float[,] resultantHeights)
+    {
+        Texture2D texture = new Texture2D(generator.terrainWidth, generator.terrainHeight);
+
+        for (int x = 0; x < generator.terrainWidth; x++)
+        {
+            for (int y = 0; y < generator.terrainHeight; y++)
+            {
+                float sample = resultantHeights[x, y];
+
+                if (generator.resultantHeightMapColor[x, y] == 0)
+                    texture.SetPixel(x, y, Color.blue);
+                else if (generator.resultantHeightMapColor[x, y] == 1)
+                    texture.SetPixel(x, y, Color.green);
+                else
+                    texture.SetPixel(x, y, Color.yellow);
+            }
+        }
+
+        texture.Apply();
+        return texture;
     }
 }
