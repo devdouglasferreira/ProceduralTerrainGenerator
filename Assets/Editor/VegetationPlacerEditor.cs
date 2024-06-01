@@ -13,5 +13,9 @@ public class VegetationPlacerEditor : Editor
         {
             vegetationPlacer.RegenerateVegetation();
         }
+        if (GUILayout.Button("Clear Vegetation"))
+        {
+            vegetationPlacer.ClearVegetation();
+        }
     }
 }

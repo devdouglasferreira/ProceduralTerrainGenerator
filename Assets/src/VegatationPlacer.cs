@@ -4,8 +4,8 @@ using UnityEngine;
 public class VegetationPlacer : MonoBehaviour
 {
     [Header("Prefabs")]
-    public GameObject treePrefab;
-    public GameObject bushPrefab;
+    public GameObject[] treePrefabs;
+    public GameObject[] bushPrefabs;
 
     [Header("Placement Settings")]
     public int numberOfTrees = 100;
@@ -47,16 +47,16 @@ public class VegetationPlacer : MonoBehaviour
     {
         for (int i = 0; i < numberOfTrees; i++)
         {
-            PlacePrefabRandomly(treePrefab);
+            PlacePrefabRandomly(treePrefabs);
         }
 
         for (int i = 0; i < numberOfBushes; i++)
         {
-            PlacePrefabRandomly(bushPrefab);
+            PlacePrefabRandomly(bushPrefabs);
         }
     }
 
-    private void PlacePrefabRandomly(GameObject prefab)
+    private void PlacePrefabRandomly(GameObject[] prefabs)
     {
         bool placed = false;
 
@@ -67,17 +67,18 @@ public class VegetationPlacer : MonoBehaviour
             int terrainX = Mathf.RoundToInt(randomX);
             int terrainZ = Mathf.RoundToInt(randomZ);
 
-            if (terrainGenerator.resultantHeightMapColor[terrainX, terrainZ] == 1) // 1 indicates ground layer
+            if (terrainGenerator.resultantHeightMapColor[terrainX, terrainZ] == 1 || terrainGenerator.resultantHeightMapColor[terrainX, terrainZ] == 2) // 1 indicates ground layer
             {
                 float terrainY = terrainGenerator.resultantHeightMap[terrainX, terrainZ] * terrainGenerator.terrainDepth;
                 Vector3 position = new Vector3(randomX, terrainY, randomZ);
+                GameObject prefab = prefabs[Random.Range(0, prefabs.Length)];
                 Instantiate(prefab, position, Quaternion.identity, transform); // Set the parent to the VegetationPlacer GameObject
                 placed = true;
             }
         }
     }
 
-    private void ClearVegetation()
+    public void ClearVegetation()
     {
         foreach (Transform child in transform)
         {

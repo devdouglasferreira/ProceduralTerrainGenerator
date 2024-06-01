@@ -75,6 +75,7 @@ public class TerrainGenerator : MonoBehaviour
 
         ApplyTerrainHeight();
         ApplyTerrainTextures();
+
     }
 
     private float[,] GeneratePelinNoiseMap(int width, int height, float scale, float offsetX, float offsetY)
