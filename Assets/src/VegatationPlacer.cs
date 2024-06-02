@@ -67,15 +67,32 @@ public class VegetationPlacer : MonoBehaviour
             int terrainX = Mathf.RoundToInt(randomX);
             int terrainZ = Mathf.RoundToInt(randomZ);
 
-            if (terrainGenerator.resultantHeightMapColor[terrainX, terrainZ] == 1 || terrainGenerator.resultantHeightMapColor[terrainX, terrainZ] == 2) // 1 indicates ground layer
+            if (terrainGenerator.resultantHeightMapColor[terrainX, terrainZ] == 1) // 1 indicates ground layer
             {
                 float terrainY = terrainGenerator.resultantHeightMap[terrainX, terrainZ] * terrainGenerator.terrainDepth;
                 Vector3 position = new Vector3(randomX, terrainY, randomZ);
-                GameObject prefab = prefabs[Random.Range(0, prefabs.Length)];
-                Instantiate(prefab, position, Quaternion.identity, transform); // Set the parent to the VegetationPlacer GameObject
-                placed = true;
+
+                if (RaycastToGround(ref position))
+                {
+                    GameObject prefab = prefabs[Random.Range(0, prefabs.Length)];
+                    Instantiate(prefab, position, Quaternion.identity, transform); // Set the parent to the VegetationPlacer GameObject
+                    placed = true;
+                }
             }
         }
+    }
+
+    private bool RaycastToGround(ref Vector3 position)
+    {
+        RaycastHit hit;
+        Vector3 rayOrigin = new Vector3(position.x, terrainGenerator.terrainDepth + 10, position.z); // Start raycast from above the terrain
+
+        if (Physics.Raycast(rayOrigin, Vector3.down, out hit, terrainGenerator.terrainDepth + 20))
+        {
+            position.y = hit.point.y;
+            return true;
+        }
+        return false;
     }
 
     public void ClearVegetation()

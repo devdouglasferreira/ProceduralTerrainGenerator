@@ -1,10 +1,9 @@
 fileFormatVersion: 2
-guid: 4f4b19add58e8474ba228a12c6d46d55
+guid: 46b4cd647469b4479bd81c74c2347790
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences:
-  - terrainTexture: {fileID: 2800000, guid: 22087d88c8e99684fa5ec10c556e82ca, type: 3}
+  defaultReferences: []
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

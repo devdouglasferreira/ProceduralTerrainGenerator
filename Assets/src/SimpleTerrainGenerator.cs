@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEditor;
 
 [ExecuteInEditMode]
 public class SimpleTerrainGenerator : MonoBehaviour
@@ -13,48 +12,51 @@ public class SimpleTerrainGenerator : MonoBehaviour
     public int width = 256;
     public int height = 256;
     public Texture2D terrainTexture;
+    
+    [HideInInspector]
+    public float[,] noiseMap;
+
 
     private Terrain terrain;
     private TerrainData terrainData;
 
+
     private void OnValidate()
     {
-        if (terrain == null)
-        {
-            terrain = GetComponent<Terrain>();
-            if (terrain == null)
-            {
-                Debug.LogError("No Terrain component found.");
-                return;
-            }
-        }
+        terrain = GetComponent<Terrain>() ?? gameObject.AddComponent<Terrain>();
+        terrainData = terrain.terrainData ?? new TerrainData();
 
-        if (terrainData == null)
-        {
-            terrainData = terrain.terrainData;
-        }
+        noiseMap = GenerateNoiseMap();
 
-        GenerateTerrain();
+        GenerateTerrain(noiseMap);
+        ApplyTexture();
     }
 
-    void GenerateTerrain()
+    private void GenerateTerrain(float[,] noiseMap)
     {
+        float[,] heights = new float[width, height];
+
         terrainData.heightmapResolution = width + 1;
         terrainData.size = new Vector3(width, heightMultiplier, height);
 
-        float[,] heights = new float[width, height];
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++) 
+                heights[x, y] = noiseMap[x, y];
+           
+        }
+        terrainData.SetHeights(0, 0, heights);
+    }
 
+    private float[,] GenerateNoiseMap()
+    {
+        float[,] noiseMap = new float[width, height];
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
-            {
-                heights[x, y] = Mathf.PerlinNoise((x + offset.x) / scale, (y + offset.y) / scale);
-            }
+                noiseMap[x, y] = Mathf.PerlinNoise((x + offset.x) / scale, (y + offset.y) / scale);
         }
-
-        terrainData.SetHeights(0, 0, heights);
-
-        ApplyTexture();
+        return noiseMap;
     }
 
     void ApplyTexture()
@@ -87,18 +89,5 @@ public class SimpleTerrainGenerator : MonoBehaviour
         terrainData.SetAlphamaps(0, 0, alphaMap);
     }
 
-    public Texture2D GenerateNoiseTexture()
-    {
-        Texture2D noiseTexture = new Texture2D(width, height);
-        for (int x = 0; x < width; x++)
-        {
-            for (int y = 0; y < height; y++)
-            {
-                float sample = Mathf.PerlinNoise((x + offset.x) / scale, (y + offset.y) / scale);
-                noiseTexture.SetPixel(x, y, new Color(sample, sample, sample));
-            }
-        }
-        noiseTexture.Apply();
-        return noiseTexture;
-    }
+
 }
